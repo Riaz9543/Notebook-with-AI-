@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Notebook — Your Personal Library</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --ink:#0f0e0c;--paper:#f5f2ec;--paper2:#ede9e1;
+      --accent:#c0392b;--accent2:#e8d5b0;--muted:#7a7269;
+      --border:#d4cfc6;--card:#faf8f4;
+      --shadow:0 2px 16px rgba(15,14,12,.08);
+      --shadow-lg:0 8px 40px rgba(15,14,12,.14);
+      --radius:4px;
+    }
+    html{font-size:16px}
+    body{
+      font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);
+      min-height:100vh;line-height:1.6;-webkit-tap-highlight-color:transparent;
+      background-image:radial-gradient(ellipse at 0% 0%,rgba(192,57,43,.04) 0%,transparent 60%),radial-gradient(ellipse at 100% 100%,rgba(232,213,176,.3) 0%,transparent 60%);
+      overflow-x:hidden;
+    }
+    h1,h2,h3{font-family:'Playfair Display',serif}
+
+    /* Loading */
+    #loading-screen{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s,visibility .4s}
+    #loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+    .loader-text{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--ink)}
+    .loader-text span{display:inline-block;animation:blink 1.2s ease-in-out infinite}
+    .loader-text span:nth-child(2){animation-delay:.2s}
+    .loader-text span:nth-child(3){animation-delay:.4s}
+    @keyframes blink{0%,80%,100%{opacity:1}40%{opacity:.2}}
+
+    .view{display:none}.view.active{display:block}
+
+    /* ── Auth ── */
+    #auth-view{min-height:100vh;display:none;align-items:center;justify-content:center;padding:1.25rem}
+    #auth-view.active{display:flex}
+    .auth-container{width:100%;max-width:440px}
+    .auth-brand{text-align:center;margin-bottom:2rem}
+    .auth-brand h1{font-size:2.4rem;letter-spacing:-.02em;line-height:1}
+    .auth-brand h1 em{color:var(--accent);font-style:italic}
+    .auth-brand p{margin-top:.4rem;color:var(--muted);font-size:.82rem;font-family:'DM Mono',monospace;font-weight:300}
+    .auth-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.5rem;box-shadow:var(--shadow-lg)}
+    .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
+    .auth-tab{flex:1;background:none;border:none;padding:.55rem .75rem;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s}
+    .auth-tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+    .auth-panel{display:none}.auth-panel.active{display:block}
+    .form-group{margin-bottom:.9rem}
+    label{display:block;font-size:.75rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem}
+    
+    input[type="email"],input[type="password"],input[type="text"],textarea,select{
+      width:100%;padding:.75rem .9rem;border:1px solid var(--border);border-radius:var(--radius);
+      background:var(--paper);font-family:'DM Sans',sans-serif;font-size:.95rem;color:var(--ink);
+      outline:none;transition:border-color .2s,box-shadow .2s;
+    }
+    textarea{min-height:150px;resize:vertical;line-height:1.6;}
+    input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(192,57,43,.08)}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:.65rem 1.1rem;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;letter-spacing:.02em}
+    .btn-primary{background:var(--ink);color:var(--paper);width:100%}
+    .btn-primary:hover{background:#2d2b27;transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn-primary:active{transform:translateY(0)}
+    .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+    .btn-link{background:none;border:none;color:var(--accent);padding:.5rem 0;font-size:.8rem;cursor:pointer;width:auto;}
+    .btn-link:hover{text-decoration:underline;}
+    .divider{display:flex;align-items:center;gap:1rem;margin:1.1rem 0;color:var(--muted);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .btn-social{width:100%;background:var(--paper);border:1px solid var(--border);color:var(--ink);margin-bottom:.55rem}
+    .btn-social:hover{background:var(--paper2);border-color:var(--muted)}
+    .btn-social svg{width:18px;height:18px;flex-shrink:0}
+    .error-msg{display:none;background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;padding:.55rem .8rem;border-radius:var(--radius);font-size:.82rem;margin-bottom:.9rem}
+    .error-msg.visible{display:block}
+    .forgot-link{text-align:right;margin-top:-0.5rem;margin-bottom:0.5rem;}
+
+    /* ── App ── */
+    #app-view{display:none;min-height:100vh}
+    #app-view.active{display:block}
+    .topbar{position:sticky;top:0;z-index:100;background:rgba(245,242,236,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 1rem;height:54px;display:flex;align-items:center;justify-content:space-between}
+    .topbar-brand{font-family:'Playfair Display',serif;font-size:1.25rem}
+    .topbar-brand em{color:var(--accent);font-style:italic}
+    .topbar-right{display:flex;align-items:center;gap:.6rem}
+    .user-pill{display:flex;align-items:center;gap:.35rem;font-size:.78rem;color:var(--muted)}
+    .avatar{width:28px;height:28px;border-radius:50%;background:var(--accent2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:600;color:var(--ink);overflow:hidden;flex-shrink:0}
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .btn-logout{background:none;border:1px solid var(--border);color:var(--muted);padding:.25rem .6rem;font-size:.75rem;border-radius:var(--radius);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+    .btn-logout:hover{border-color:var(--accent);color:var(--accent)}
+
+    .app-main{max-width:1200px;margin:0 auto;padding:1.75rem 1rem;display:grid;grid-template-columns:280px 1fr;gap:1.75rem;align-items:start}
+    .sidebar-panel{position:sticky;top:68px}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+    .panel-title{font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .add-form{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.15rem;box-shadow:var(--shadow)}
+    .add-form h2{font-size:1rem;margin-bottom:.9rem}
+    .btn-accent{background:var(--accent);color:#fff;width:100%;margin-top:.15rem}
+    .btn-accent:hover{background:#a93226;transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn-accent:active{transform:translateY(0)}
+    .btn-accent:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+    .notes-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;gap:.5rem;flex-wrap:wrap}
+    .notes-count{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);letter-spacing:.06em}
+    .search-bar{position:relative;flex-shrink:0}
+    .search-bar input{padding-left:1.9rem;font-size:.83rem;width:190px}
+    .search-icon{position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+    .sort-select{padding:.3rem .5rem;font-size:.75rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--paper);font-family:'DM Sans',sans-serif;}
+
+    .notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.9rem}
+
+    /* Note Card */
+    .note-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.1rem;box-shadow:var(--shadow);position:relative;cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s;animation:cardIn .3s ease both;-webkit-user-select:none;user-select:none}
+    @keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .note-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent);opacity:0;transition:opacity .18s}
+    .note-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:var(--accent2)}
+    .note-card:hover::before{opacity:1}
+    .note-card:active{transform:translateY(0);box-shadow:var(--shadow)}
+    .note-title{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;margin-bottom:.35rem;line-height:1.3;word-break:break-word}
+    .note-desc{font-size:.82rem;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+    .note-meta{display:flex;align-items:center;justify-content:space-between;margin-top:.75rem;padding-top:.55rem;border-top:1px solid var(--border);flex-wrap:wrap;gap:.3rem}
+    .note-badge{display:inline-flex;align-items:center;gap:.2rem;background:var(--paper2);border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:500;color:var(--ink);}
+    .note-date{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.04em;font-weight:300}
+
+    .empty-state{grid-column:1/-1;text-align:center;padding:3.5rem 1.5rem;color:var(--muted)}
+    .empty-state-icon{font-size:2.5rem;margin-bottom:.75rem;opacity:.3}
+    .empty-state h3{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--ink);margin-bottom:.4rem}
+    .empty-state p{font-size:.88rem}
+
+    /* ── NOTE DETAIL ── */
+    .detail-overlay{display:none;position:fixed;inset:0;background:rgba(15,14,12,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;align-items:flex-end;justify-content:center}
+    .detail-overlay.open{display:flex}
+    .detail-panel{background:var(--card);width:100%;max-width:540px;max-height:88vh;border-radius:14px 14px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s cubic-bezier(.22,.61,.36,1);box-shadow:0 -4px 40px rgba(15,14,12,.2)}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .detail-handle{width:32px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 0;flex-shrink:0}
+    .detail-top{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem 0;flex-shrink:0}
+    .detail-date-badge{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.04em;font-weight:300}
+    .detail-close{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;transition:all .15s;flex-shrink:0}
+    .detail-close:hover{background:var(--paper2);color:var(--ink)}
+    .detail-body{flex:1;overflow-y:auto;padding:.85rem 1.25rem 1.25rem;-webkit-overflow-scrolling:touch}
+    .detail-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;line-height:1.3;margin-bottom:.7rem;word-wrap:break-word;word-break:break-word}
+    .detail-divider{height:1px;background:var(--border);margin-bottom:1.1rem}
+    .detail-desc{font-size:.92rem;line-height:1.75;color:var(--ink);white-space:pre-wrap;word-wrap:break-word;word-break:break-word}
+    .detail-desc.empty{color:var(--muted);font-style:italic}
+    .detail-footer{flex-shrink:0;border-top:1px solid var(--border);padding:.85rem 1.25rem 1.1rem;background:var(--card)}
+    .ai-section-label{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+    .ai-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.75rem}
+    .ai-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:20px;border:1px solid var(--border);background:var(--paper);font-size:.76rem;font-weight:500;color:var(--ink);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+    .ai-chip:hover{border-color:var(--accent2);background:var(--paper2);transform:translateY(-1px);box-shadow:var(--shadow)}
+    .ai-chip:active{transform:translateY(0)}
+    .detail-actions{display:flex;gap:.5rem}
+    .detail-actions .btn{flex:1;font-size:.82rem;padding:.55rem .6rem}
+    .btn-outline{background:none;border:1px solid var(--border);color:var(--muted)}
+    .btn-outline:hover{border-color:var(--muted);color:var(--ink)}
+    .btn-danger{background:none;border:1px solid #fca5a5;color:#b91c1c}
+    .btn-danger:hover{background:#fef2f2;border-color:#f87171}
+    .btn-regenerate{background:none;border:1px solid var(--accent2);color:var(--accent);margin-top:0.5rem;font-size:0.7rem;padding:0.3rem 0.6rem;width:auto;align-self:flex-start}
+
+    /* ── Edit Modal ── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,14,12,.5);backdrop-filter:blur(4px);z-index:250;align-items:center;justify-content:center;padding:.75rem}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:10px;width:100%;max-width:460px;padding:1.4rem;box-shadow:var(--shadow-lg);animation:modalIn .25s ease;max-height:90vh;overflow-y:auto}
+    @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem}
+    .modal-header h2{font-size:1.15rem}
+    .modal-close{width:30px;height:30px;border-radius:var(--radius);border:1px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.95rem;transition:all .15s}
+    .modal-close:hover{background:var(--paper2);color:var(--ink)}
+    .modal-actions{display:flex;gap:.5rem;margin-top:.9rem}
+    .modal-actions .btn{flex:1;font-size:.85rem;padding:.55rem .6rem}
+    .btn-accent-modal{background:var(--accent);color:#fff}
+    .btn-accent-modal:hover{background:#a93226}
+
+    /* Toast */
+    #toast{position:fixed;bottom:1.25rem;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:var(--paper);padding:.6rem 1rem;border-radius:6px;font-size:.8rem;font-family:'DM Mono',monospace;font-weight:300;letter-spacing:.02em;z-index:999;opacity:0;transition:all .25s;pointer-events:none;box-shadow:var(--shadow-lg);max-width:88vw;text-align:center;white-space:nowrap}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    /* ── AI Chat Widget ── */
+    .chat-fab {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      width: 50px; height: 50px; border-radius: 50%;
+      background: var(--ink); color: white; border: none;
+      font-size: 1.5rem; cursor: pointer; z-index: 300;
+      box-shadow: var(--shadow-lg); transition: transform 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-fab:active { transform: scale(0.95); }
+
+    .chat-widget {
+      position: fixed; bottom: 5rem; right: 1.5rem;
+      width: 340px; max-width: calc(100vw - 3rem); height: 450px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: var(--shadow-lg);
+      display: none; flex-direction: column; z-index: 300;
+      overflow: hidden;
+    }
+    .chat-widget.open { display: flex; }
+
+    .chat-header {
+      background: var(--ink); color: var(--paper); padding: 0.8rem 1rem;
+      font-family: 'DM Mono', monospace; font-size: 0.85rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .chat-close { background: none; border: none; color: var(--paper); font-size: 1rem; cursor: pointer; }
+    .chat-messages { flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.8rem; scroll-behavior: smooth; }
+    .chat-bubble { padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.85rem; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; direction: ltr; text-align: left; unicode-bidi: plaintext; }
+    .ai-bubble { background: var(--paper2); color: var(--ink); align-self: flex-start; border-bottom-left-radius: 2px; }
+    .user-bubble { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .chat-input-area { padding: 0.8rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; background: var(--card); direction: ltr; flex-direction: column}
+    .chat-input-area input { flex: 1; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem; outline: none; font-family: 'DM Sans', sans-serif; direction: ltr; unicode-bidi: plaintext;  }
+    .chat-input-area .btn { 
+      width: 100%;padding: 0.5rem 0.8rem; }
+
+    @media(max-width:768px){
+      .app-main{grid-template-columns:1fr;padding:1rem .6rem;gap:1rem}
+      .sidebar-panel{position:static;order:-1}
+      .add-form{padding:.9rem}
+      .add-form h2{font-size:.92rem;margin-bottom:.7rem}
+      .topbar{padding:0 .6rem;height:48px}
+      .topbar-brand{font-size:1.1rem}
+      .user-pill span{display:none}
+      .btn-logout{padding:.2rem .45rem;font-size:.7rem}
+      .notes-header{margin-bottom:.85rem;flex-wrap:wrap}
+      .search-bar{width:100%;flex-shrink:0}
+      .search-bar input{width:100%;font-size:.8rem;padding-left:1.9rem}
+      .notes-grid{grid-template-columns:repeat(2, 1fr) !important;gap:.6rem}
+      .note-card{padding:.85rem}
+      .note-title{font-size:.85rem}
+      .note-desc{font-size:.78rem;-webkit-line-clamp:2}
+      .note-meta{margin-top:.55rem;padding-top:.4rem}
+      .note-date{font-size:.6rem}
+      .detail-panel{max-height:92vh;border-radius:10px 10px 0 0}
+      .detail-body{padding:.7rem 1rem 1rem}
+      .detail-title{font-size:1.2rem}
+      .detail-top{padding:.6rem 1rem 0}
+      .detail-footer{padding:.65rem 1rem .85rem}
+      .ai-chips{gap:.3rem}
+      .ai-chip{font-size:.7rem;padding:.25rem .5rem}
+      .auth-brand h1{font-size:1.9rem}
+      .auth-card{padding:1.1rem}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading-screen"><div class="loader-text">Note<span>.</span><span>.</span><span>.</span>book</div></div>
+
+<div id="auth-view" class="view">
+  <div class="auth-container">
+    <div class="auth-brand">
+      <h1>Note<em>book</em></h1>
+      <p>// your personal library</p>
+    </div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchTab('register')">Register</button>
+      </div>
+      <div class="auth-panel active" id="panel-login">
+        <div class="error-msg" id="login-error"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com" /></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" /></div>
+        <div class="forgot-link"><button class="btn-link" onclick="forgotPassword()">Forgot password?</button></div>
+        <button class="btn btn-primary" id="btn-login" onclick="loginEmail()">Sign In</button>
+        <div class="divider">or continue with</div>
+        <button class="btn btn-social" onclick="loginGoogle()"><svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>Google</button>
+      </div>
+      <div class="auth-panel" id="panel-register">
+        <div class="error-msg" id="register-error"></div>
+        <div class="form-group"><label>Display Name</label><input type="text" id="register-name" placeholder="Your name" /></div>
+        <div class="form-group"><label>Email</label><input type="email" id="register-email" placeholder="you@example.com" /></div>
+        <div class="form-group"><label>Password</label><input type="password" id="register-password" placeholder="Min 6 characters" /></div>
+        <button class="btn btn-primary" id="btn-register" onclick="registerEmail()">Create Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-view" class="view">
+  <nav class="topbar">
+    <div class="topbar-brand">Note<em>book</em></div>
+    <div class="topbar-right">
+      <div class="user-pill"><div class="avatar" id="user-avatar">?</div><span id="user-email-display"></span></div>
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+  <main class="app-main">
+    <aside class="sidebar-panel">
+      <div class="panel-header"><span class="panel-title">New Entry</span></div>
+      <div class="add-form">
+        <h2>Add a Note</h2>
+        <div class="error-msg" id="add-error"></div>
+        <div class="form-group"><label>Title</label><input type="text" id="note-title" placeholder="Enter a title..." /></div>
+        <div class="form-group"><label>Category</label>
+          <select id="note-category">
+            <option value="Uncategorized">Uncategorized</option>
+            <option value="Work">Work</option>
+            <option value="Personal">Personal</option>
+            <option value="Ideas">Ideas</option>
+            <option value="Study">Study</option>
+            <option value="noticed">Noticed</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Description</label><textarea id="note-desc" placeholder="Write something..."></textarea></div>
+        <button class="btn btn-accent" id="btn-add" onclick="addNote()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Save Note</button>
+      </div>
+    </aside>
+    <section class="notes-area">
+      <div class="notes-header">
+        <span class="notes-count" id="notes-count">0 entries</span>
+        <div style="display:flex; gap:0.5rem;">
+          <select id="sort-select" class="sort-select" onchange="filterNotes()">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="title_asc">Title A–Z</option>
+            <option value="title_desc">Title Z–A</option>
+            <option value="category_asc">Category A–Z</option>
+            <option value="serial_asc">Serial ↑</option>
+            <option value="serial_desc">Serial ↓</option>
+          </select>
+          <div class="search-bar">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="search-input" placeholder="Search by title..." oninput="filterNotes()" />
+          </div>
+        </div>
+      </div>
+      <div class="notes-grid" id="notes-grid"></div>
+    </section>
+  </main>
+</div>
+
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-panel">
+    <div class="detail-handle"></div>
+    <div class="detail-top">
+      <span class="detail-date-badge" id="detail-date"></span>
+      <button class="detail-close" onclick="closeNoteDetail()">&#10005;</button>
+    </div>
+    <div class="detail-body">
+      <h2 class="detail-title" id="detail-title"></h2>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span class="note-badge" id="detail-serial"></span>
+        <span class="note-badge" id="detail-category"></span>
+      </div>
+      <div class="detail-divider"></div>
+      <div class="detail-desc" id="detail-desc"></div>
+      <div id="detail-ai-suggestion-section" style="display:none;margin-top:1.1rem;">
+        <div style="font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">✨ AI Suggestions</div>
+        <div id="detail-ai-suggestion-content" style="background:var(--paper2);border:1px solid var(--border);border-radius:8px;padding:.85rem;font-size:.86rem;line-height:1.75;color:var(--ink);white-space:pre-wrap;"></div>
+        <button id="regenerate-suggestions-btn" class="btn btn-outline btn-regenerate" onclick="regenerateCurrentNoteSuggestions()">⟳ Regenerate</button>
+      </div>
+    </div>
+    <div class="detail-footer">
+      <div class="ai-section-label">Discuss with AI</div>
+      <div class="ai-chips" id="detail-ai-chips"></div>
+      <div class="detail-actions">
+        <button class="btn btn-outline" id="detail-btn-edit">Edit</button>
+        <button class="btn btn-danger" id="detail-btn-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header"><h2>Edit Note</h2><button class="modal-close" onclick="closeEditModal()">&#10005;</button></div>
+    <div class="error-msg" id="edit-error"></div>
+    <div class="form-group"><label>Title</label><input type="text" id="edit-title" /></div>
+    <div class="form-group"><label>Category</label><select id="edit-category"><option value="Uncategorized">Uncategorized</option><option value="Work">Work</option><option value="Personal">Personal</option><option value="Ideas">Ideas</option><option value="Study">Study</option><option value="noticed">Other</option>
+<option value="Other">Other</option>
+    </select></div>
+    <div class="form-group"><label>Description</label><textarea id="edit-desc"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-accent-modal" id="btn-save-edit" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="chat-widget" id="chat-widget">
+  <div class="chat-header">
+    <span>✨ AI Assistant</span>
+    <button class="chat-close" onclick="toggleChat()">&#10005;</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-bubble ai-bubble">Hi! I can analyze all your notes. How can I help you today?</div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Ask about your notes..." onkeydown="if(event.key==='Enter') sendChat()" />
+    <button class="btn btn-accent" onclick="sendChat()">Send</button>
+  </div>
+</div>
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()">✨</button>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+  import { getDatabase, ref, push, set, update, remove, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+  import { getAI, getGenerativeModel } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-ai.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyCyCMIDiiaDMkyJHos7DICCGN36is2DmYI",
+    authDomain:"note-7e2e9.firebaseapp.com",
+    databaseURL:"https://note-7e2e9-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:"note-7e2e9",
+    storageBucket:"note-7e2e9.firebasestorage.app",
+    messagingSenderId:"607708912317",
+    appId:"1:607708912317:web:8c8c9764ceebda366575d4",
+    measurementId:"G-CHJJZ43FDM"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const ai = getAI(app);
+  const aiModel = getGenerativeModel(ai, { 
+    model: "gemini-2.5-flash",
+    systemInstruction: "You are a helpful notebook assistant. You can answer any question the user asks — both general knowledge and questions about their notes. When answering, write in plain text without markdown bold (**text**). Be concise and friendly."
+  });
+
+  let currentUser = null;
+  let allNotes = [];
+  let editingNoteId = null;
+  let detailNoteId = null;
+  let notesListener = null;
+
+  const googleProvider = new GoogleAuthProvider();
+
+  const AI_PROVIDERS = [
+    { id:'chatgpt',    name:'ChatGPT',    url:'https://chatgpt.com/?q=' },
+    { id:'claude',     name:'Claude',     url:'https://claude.ai/new?q=' },
+    { id:'gemini',     name:'Gemini',     url:'https://gemini.google.com/app?q=' },
+    { id:'deepseek',   name:'DeepSeek',   url:'https://chat.deepseek.com/?q=' },
+    { id:'perplexity', name:'Perplexity', url:'https://www.perplexity.ai/search?q=' }
+  ];
+
+  // Helper to get next serial number for user
+  async function getNextSerial(userId) {
+    const counterRef = ref(db, `counters/${userId}/noteSerial`);
+    try {
+      const result = await runTransaction(counterRef, (current) => {
+        return (current || 0) + 1;
+      });
+      return result.snapshot.val();
+    } catch (e) {
+      console.error("Serial counter error", e);
+      return null;
+    }
+  }
+
+  onAuthStateChanged(auth, user => {
+    document.getElementById('loading-screen').classList.add('hidden');
+    if (user) {
+      currentUser = user;
+      showApp(user);
+      subscribeNotes(user.uid);
+    } else {
+      currentUser = null;
+      if (notesListener) { notesListener(); notesListener = null; }
+      allNotes = [];
+      renderNotes([]);
+      showAuth();
+      document.getElementById('chat-widget').classList.remove('open');
+      document.getElementById('chat-fab').style.display = 'none';
+    }
+  });
+
+  function showApp(user) {
+    document.getElementById('auth-view').classList.remove('active');
+    document.getElementById('app-view').classList.add('active');
+    document.getElementById('chat-fab').style.display = 'flex';
+    const dn = user.displayName || user.email;
+    document.getElementById('user-email-display').textContent = dn;
+    const av = document.getElementById('user-avatar');
+    if (user.photoURL) av.innerHTML = `<img src="${user.photoURL}" alt=""/>`;
+    else av.textContent = (dn[0] || '?').toUpperCase();
+  }
+  function showAuth() {
+    document.getElementById('app-view').classList.remove('active');
+    document.getElementById('auth-view').classList.add('active');
+  }
+
+  function subscribeNotes(uid) {
+    notesListener = onValue(ref(db, `notes/${uid}`), snap => {
+      const d = snap.val() || {};
+      allNotes = Object.entries(d).map(([id,n]) => ({id, ...n})).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+      filterNotes();
+    }, err => { console.error(err); showToast('Could not load notes'); });
+  }
+
+  window.filterNotes = function() {
+    const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+    let filtered = q ? allNotes.filter(n => (n.title||'').toLowerCase().includes(q)) : [...allNotes];
+    const sortBy = document.getElementById('sort-select').value;
+    switch(sortBy) {
+      case 'newest': filtered.sort((a,b) => (b.createdAt||0) - (a.createdAt||0)); break;
+      case 'oldest': filtered.sort((a,b) => (a.createdAt||0) - (b.createdAt||0)); break;
+      case 'title_asc': filtered.sort((a,b) => (a.title||'').localeCompare(b.title||'')); break;
+      case 'title_desc': filtered.sort((a,b) => (b.title||'').localeCompare(a.title||'')); break;
+      case 'category_asc': filtered.sort((a,b) => (a.category||'Uncategorized').localeCompare(b.category||'Uncategorized')); break;
+      case 'serial_asc': filtered.sort((a,b) => (a.serial||Infinity) - (b.serial||Infinity)); break;
+      case 'serial_desc': filtered.sort((a,b) => (b.serial||-Infinity) - (a.serial||-Infinity)); break;
+    }
+    renderNotes(filtered);
+  };
+
+  function renderNotes(notes) {
+    const grid = document.getElementById('notes-grid');
+    const count = document.getElementById('notes-count');
+    count.textContent = `${notes.length} ${notes.length===1?'entry':'entries'}`;
+    if (!notes.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📖</div><h3>No notes yet</h3><p>Add your first note using the form.</p></div>`;
+      return;
+    }
+    grid.innerHTML = notes.map((n,i) => {
+      const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      const serial = n.serial ? `#${n.serial}` : '—';
+      const category = n.category || 'Uncategorized';
+      return `<div class="note-card" style="animation-delay:${i*.04}s" onclick="openNoteDetail('${n.id}')">
+        <div class="note-title">${esc(n.title||'Untitled')}</div>
+        <div class="note-desc">${esc(n.description||'')}</div>
+        <div class="note-meta">
+          <span class="note-badge">${esc(category)}</span>
+          <span class="note-badge">${esc(serial)}</span>
+          <span class="note-date">${date}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+  async function generateAndStoreSuggestions(noteId, title, description) {
+    try {
+      const prompt = `Note Title: ${title}\nNote Content: ${description || '(empty)'}\n\nGive 3 to 5 specific, actionable tips to improve or expand this idea. Use numbered points. Write in plain text only, no bold or markdown.`;
+      const result = await aiModel.generateContent(prompt);
+      const suggestions = result.response.text();
+      await update(ref(db, `notes/${currentUser.uid}/${noteId}`), { aiSuggestions: suggestions });
+      return suggestions;
+    } catch (e) {
+      console.error("AI suggestion generation failed", e);
+      return "Could not generate suggestions right now.";
+    }
+  }
+
+  window.addNote = async function() {
+    const title = document.getElementById('note-title').value.trim();
+    const desc = document.getElementById('note-desc').value.trim();
+    const category = document.getElementById('note-category').value;
+    const err = document.getElementById('add-error');
+    err.classList.remove('visible');
+    if (!title) { err.textContent='Title is required.'; err.classList.add('visible'); return; }
+    const btn = document.getElementById('btn-add');
+    btn.disabled=true; btn.textContent='Saving…';
+    try {
+      const newRef = push(ref(db,`notes/${currentUser.uid}`));
+      const serial = await getNextSerial(currentUser.uid);
+      await set(newRef, {title, description:desc, category, serial, createdAt:Date.now()});
+      generateAndStoreSuggestions(newRef.key, title, desc).catch(console.error);
+      document.getElementById('note-title').value='';
+      document.getElementById('note-desc').value='';
+      document.getElementById('note-category').value='Uncategorized';
+      showToast('Note saved ✓');
+    } catch(e) { err.textContent=e.message; err.classList.add('visible'); }
+    btn.disabled=false;
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Save Note';
+  };
+
+  window.openNoteDetail = async function(id) {
+    const note = allNotes.find(n => n.id === id);
+    if (!note) return;
+    detailNoteId = id;
+    document.getElementById('detail-date').textContent = note.createdAt ? new Date(note.createdAt).toLocaleDateString() : '';
+    document.getElementById('detail-title').textContent = note.title;
+    document.getElementById('detail-desc').textContent = note.description || 'No description.';
+    document.getElementById('detail-serial').textContent = note.serial ? `#${note.serial}` : '—';
+    document.getElementById('detail-category').textContent = note.category || 'Uncategorized';
+    document.getElementById('detail-ai-chips').innerHTML = AI_PROVIDERS.map(p =>
+      `<button class="ai-chip" onclick="event.stopPropagation();sendToAI('${p.id}')">${p.name}</button>`
+    ).join('');
+    
+    const section = document.getElementById('detail-ai-suggestion-section');
+    const contentDiv = document.getElementById('detail-ai-suggestion-content');
+    section.style.display = 'block';
+    
+    if (note.aiSuggestions) {
+      contentDiv.textContent = note.aiSuggestions;
+    } else {
+      contentDiv.textContent = '✨ Generating suggestions...';
+      const newSuggestions = await generateAndStoreSuggestions(id, note.title, note.description || '');
+      contentDiv.textContent = newSuggestions;
+    }
+    document.getElementById('detail-overlay').classList.add('open');
+  };
+  
+  window.regenerateCurrentNoteSuggestions = async function() {
+    if (!detailNoteId) return;
+    const note = allNotes.find(n => n.id === detailNoteId);
+    if (!note) return;
+    const contentDiv = document.getElementById('detail-ai-suggestion-content');
+    contentDiv.textContent = '✨ Regenerating...';
+    const newSuggestions = await generateAndStoreSuggestions(detailNoteId, note.title, note.description || '');
+    contentDiv.textContent = newSuggestions;
+    showToast('Suggestions updated');
+  };
+
+  window.closeNoteDetail = () => {
+    detailNoteId = null;
+    document.getElementById('detail-overlay').classList.remove('open');
+  };
+  
+  window.sendChat = async function() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    const messagesContainer = document.getElementById('chat-messages');
+    messagesContainer.insertAdjacentHTML('beforeend', `<div class="chat-bubble user-bubble">${esc(msg)}</div>`);
+    input.value = '';
+    const loadingId = 'loading-' + Date.now();
+    messagesContainer.insertAdjacentHTML('beforeend', `<div class="chat-bubble ai-bubble" id="${loadingId}">Thinking...</div>`);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    try {
+      let notesCtx = allNotes.length
+        ? "User's notes for context:\n" + allNotes.map(n => `- ${n.title} (${n.category||'Uncategorized'}): ${n.description||''}`).join('\n')
+        : "The user has no notes yet.";
+      if (detailNoteId) {
+        const currentNote = allNotes.find(n => n.id === detailNoteId);
+        if (currentNote && currentNote.aiSuggestions) {
+          notesCtx += `\n\nCurrently open note: "${currentNote.title}"\nIts AI suggestions: ${currentNote.aiSuggestions}`;
+        }
+      }
+      const result = await aiModel.generateContent(`${notesCtx}\n\nUser question: ${msg}`);
+      document.getElementById(loadingId).innerText = result.response.text();
+    } catch (e) { document.getElementById(loadingId).innerText = "Error: " + e.message; }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  };
+  
+  window.toggleChat = function() {
+    document.getElementById('chat-widget').classList.toggle('open');
+    setTimeout(() => {
+      const messagesContainer = document.getElementById('chat-messages');
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      document.getElementById('chat-input').focus();
+    }, 100);
+  };
+  
+  window.sendToAI = function(providerId) {
+    const provider = AI_PROVIDERS.find(p => p.id === providerId);
+    if (!provider) return;
+    const currentNote = allNotes.find(n => n.id === detailNoteId);
+    if (!currentNote) return;
+    const query = encodeURIComponent(`I have a note titled "${currentNote.title}". ${currentNote.aiSuggestions ? `It has these suggestions: ${currentNote.aiSuggestions}. ` : ''}Can you help me expand on these ideas?`);
+    window.open(provider.url + query, '_blank');
+  };
+  
+  window.logout = () => signOut(auth);
+  window.showToast = (m) => { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); };
+  window.switchTab = (tab) => {
+    document.querySelectorAll('.auth-tab').forEach((el,i) => el.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
+    document.getElementById('panel-login').classList.toggle('active',tab==='login');
+    document.getElementById('panel-register').classList.toggle('active',tab==='register');
+  };
+  window.loginEmail = () => signInWithEmailAndPassword(auth,document.getElementById('login-email').value,document.getElementById('login-password').value).catch(e => { document.getElementById('login-error').textContent=e.message; document.getElementById('login-error').classList.add('visible'); });
+  window.loginGoogle = () => signInWithPopup(auth,googleProvider);
+  window.forgotPassword = () => {
+    const email = document.getElementById('login-email').value;
+    if (!email) {
+      document.getElementById('login-error').textContent='Enter your email address first.';
+      document.getElementById('login-error').classList.add('visible');
+      return;
+    }
+    sendPasswordResetEmail(auth, email).then(() => {
+      showToast('Password reset email sent!');
+    }).catch(e => {
+      document.getElementById('login-error').textContent=e.message;
+      document.getElementById('login-error').classList.add('visible');
+    });
+  };
+  window.registerEmail = async () => {
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const name = document.getElementById('register-name').value;
+    const errDiv = document.getElementById('register-error');
+    errDiv.classList.remove('visible');
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName: name || email.split('@')[0] });
+      showToast('Account created!');
+    } catch(e) { errDiv.textContent=e.message; errDiv.classList.add('visible'); }
+  };
+  
+  document.getElementById('detail-btn-edit').onclick = () => {
+    if (!detailNoteId) return;
+    const note = allNotes.find(n => n.id === detailNoteId);
+    if (note) {
+      editingNoteId = detailNoteId;
+      document.getElementById('edit-title').value = note.title || '';
+      document.getElementById('edit-category').value = note.category || 'Uncategorized';
+      document.getElementById('edit-desc').value = note.description || '';
+      document.getElementById('edit-modal').classList.add('open');
+    }
+  };
+  document.getElementById('detail-btn-delete').onclick = async () => {
+    if (!detailNoteId || !confirm('Delete this note permanently?')) return;
+    try {
+      await remove(ref(db, `notes/${currentUser.uid}/${detailNoteId}`));
+      closeNoteDetail();
+      showToast('Note deleted');
+    } catch(e) { showToast('Error deleting'); }
+  };
+  window.saveEdit = async () => {
+    const newTitle = document.getElementById('edit-title').value.trim();
+    const newCategory = document.getElementById('edit-category').value;
+    const newDesc = document.getElementById('edit-desc').value;
+    if (!newTitle) { document.getElementById('edit-error').textContent='Title required'; document.getElementById('edit-error').classList.add('visible'); return; }
+    const updates = { title: newTitle, category: newCategory, description: newDesc };
+    try {
+      await update(ref(db, `notes/${currentUser.uid}/${editingNoteId}`), updates);
+      closeEditModal();
+      showToast('Note updated');
+      const note = allNotes.find(n => n.id === editingNoteId);
+      if (note) generateAndStoreSuggestions(editingNoteId, newTitle, newDesc).catch(console.error);
+    } catch(e) { document.getElementById('edit-error').textContent=e.message; document.getElementById('edit-error').classList.add('visible'); }
+  };
+  window.closeEditModal = () => {
+    editingNoteId = null;
+    document.getElementById('edit-modal').classList.remove('open');
+  };
+  
+</script>
+</body>
+</html>
