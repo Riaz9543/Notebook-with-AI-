@@ -436,7 +436,7 @@
   const ai = getAI(app);
   const aiModel = getGenerativeModel(ai, { 
     model: "gemini-3-flash-preview",
-    systemInstruction: "You are a helpful notebook assistant. You can answer any question the user asks — both general knowledge and questions about their notes. When answering, write in plain text without markdown bold (**text**). Be concise and friendly."
+    systemInstruction: "You are a helpful notebook assistant. You can answer any question the user asks — both general knowledge and questions about their notes. When answering, write in plain text without markdown bold (**text**). Be concise and friendly.You should answer the question in the user's question language."
   });
 
   let currentUser = null;
