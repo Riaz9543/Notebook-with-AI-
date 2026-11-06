@@ -585,7 +585,8 @@ Safety:
       return suggestions;
     } catch (e) {
       console.error("AI suggestion generation failed", e);
-      return "Could not generate suggestions right now.";
+      return e;
+      //return "Could not generate suggestions right now.`{e}`";
     }
   }
 
