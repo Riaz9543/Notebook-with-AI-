@@ -19,7 +19,7 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const ai = getAI(app);
 const aiModel = getGenerativeModel(ai, { 
-  model: "gemini-2.5-flash",
+  model: "gemini-3.8-flash",
   systemInstruction: "You are a helpful notebook assistant. You can answer any question the user asks — both general knowledge and questions about their notes. When answering, write in plain text without markdown bold (**text**). Be concise and friendly."
 });
 
