@@ -154,7 +154,7 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 async function generateAndStoreSuggestions(noteId, title, description) {
   try {
-    const prompt = `Note Title: ${title}\nNote Content: ${description || '(empty)'}\n\nGive 3 to 5 specific, actionable tips to improve or expand this idea. Use numbered points. Write in plain text only, no bold or markdown.`;
+    const prompt = `Note Title: ${title}\nNote Content: ${description || '(empty)'}\n\nGive 3 to 5 specific, action or gide . Use numbered points. Write in plain text only, no bold or markdown.`;
     const result = await aiModel.generateContent(prompt);
     const suggestions = result.response.text();
     await update(ref(db, `notes/${currentUser.uid}/${noteId}`), { aiSuggestions: suggestions });
