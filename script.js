@@ -19,7 +19,7 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const ai = getAI(app);
 const aiModel = getGenerativeModel(ai, { 
-  model: "gemini-3.8-flash",
+  model: "gemini-3-flash",
   systemInstruction: `You are a helpful notebook assistant for a personal note-taking app.
 
 Your job:
